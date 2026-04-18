@@ -9,7 +9,8 @@ Analysis of Norway's radiation monitoring system using operational data. Python-
 - `src/utils.py` — Shared plotting style, constants, helper functions
 - `notebooks/` — Analysis notebooks, each answering one stated research question
 - `figures/` — Publication-ready figures exported from notebooks
-- `data/raw/` — Original files (gitignored), `data/processed/` — cleaned outputs
+- `data/raw/` — Original files (gitignored)
+- `data/processed/` — cleaned outputs (gitignored)
 - `tests/` — pytest unit tests mirroring src modules
 
 ## Code Standards
@@ -26,4 +27,4 @@ Analysis of Norway's radiation monitoring system using operational data. Python-
 - pytest for testing, synthetic fixtures only (no dependency on real data files)
 
 ## Dependencies
-Python 3.10+: pandas, geopandas, numpy, scipy, matplotlib, seaborn, pandera, openpyxl, statsmodels, scikit-learn, shapely, requests.
+Python 3.12+: pandas, geopandas, numpy, scipy, matplotlib, seaborn, pandera, openpyxl, statsmodels, scikit-learn, shapely, requests.

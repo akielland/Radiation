@@ -1,7 +1,6 @@
 # DSA Radiation Monitoring System Assessment — Project Specification
 
 ## Purpose
-Case analysis for DSA senior data engineer/advisor interview.
 Evaluate Norway's radiation monitoring system using provided datasets.
 Deliverables: GitHub repo + 10-minute presentation.
 
@@ -10,48 +9,60 @@ Deliverables: GitHub repo + 10-minute presentation.
 ## Research Questions
 
 **Q1: How well does the current monitoring system perform?**
-- Operational reliability (uptime, data quality)
+- Operational reliability (uptime, data quality)    
 - Geographic coverage (gaps, redundancy)  
 - Signal quality (noise separation, detection capability)
 - For whom does it work / fail? (population, geography, critical infrastructure)
 
 **Q2: What is the improvement potential?**
-- Analytical: what can be extracted from existing data with better methods?
+- Analytical: what can be extracted from existing data with better analysis methods?
 - Physical: where should resources be invested?
 - Concrete ranked recommendations
+
+---
+
+## Technical Standards
+
+- **Language**: All code, variable names, docstrings, comments in English
+- **Notebooks**: Norwegian acceptable in markdown narrative (interview context), English in code
+- **Data validation**: Pandera schemas enforced at load time
+- **Plotting**: Consistent style via `utils.py`, publication-ready saved to `figures/`
+- **Dependencies**: `requirements.txt` pinned, no exotic packages
+- **Repo hygiene**: `.gitignore` for data/raw, clear README, FINDINGS.md for non-technical readers
 
 ---
 
 ## Datasets
 
 ### DS1: Radnett Continuous Monitoring (`Radnett_AlleStasjoner_Overvåkingsdata_2023.csv`)
-- 385,484 rows, 4 columns
 - Hourly dose rate (µSv/h) from 44 stations, full year 2023
-- **Critical**: zero values = missing data, NOT zero radiation
+- zero values maybe missing data, NOT zero radiation, need to check and understand. Maybe an error added on purpose to mask missing data as zero, but this is a critical issue to investigate per station.
 - Station types: ground-level, building-mounted, air filter, mobile
 - Units: microSv/h
 
 ### DS2: Station Locations (`Radnettstasjonerlokasjon.xlsx`)
 - 44 stations with lat/lon
-- **Note**: mobile stations 2-6 all coded at (60, 10) — placeholder coordinates
-- Stavanger coordinates stored as strings, not floats
+- **Note**: looks like mobile stations 2-6 all coded at (60, 10) — placeholder coordinates or error? Must be flagged as non-geolocated. Cannot be used for spatial analysis. This is a critical data quality issue.
+- Stavanger coordinates seems to be stored as strings, not floats?
 
 ### DS3: Civil Defence Measurements (`Sivilforsvaret_Målingsdata.csv`)
-- 2,356 rows, 9 columns
 - Manual patrol measurements 2002–2024
-- Units: Sv/h (factor 1e6 difference from Radnett!)
-- Location as WKT POINT(lon lat) — note lon/lat order
+- Units: Sv/h (looks like a factor 1e6 difference from Radnett)
+- Looks like Location as WKT POINT(lon lat) — note lon/lat order
 - Metadata contains: rainfall flag, snow depth, measurement point name
-- **Known issues**: 9 zero-coordinate entries, extreme outlier 4.35 µSv/h near Bodø
+- Likely Issues: 9 zero-coordinate entries, extreme outlier 4.35 µSv/h near Bodø
 
 ### DS4: External — MET Weather Data (Frost API)
 - Precipitation, wind, temperature for stations near Radnett locations
-- Required for radon washout analysis
+- Relevant for for radon washout analysis
 - API: https://frost.met.no/
 
 ### DS5: External — SSB Population Data (optional)
 - Population per municipality for coverage weighting
+- Kindergarten and school locations for population group (children) analysis
 - API: https://data.ssb.no/
+
+### DSX: Potential additional datasets (e.g. historical radiation events, maintenance logs) if available and relevant
 
 ---
 
@@ -86,7 +97,8 @@ CivilDefenceSchema:
   measurement_point_name: String (extracted from metadata)
 ```
 
-**Acceptance criteria**: All three datasets pass schema validation after cleaning. Violations documented.
+**Acceptance criteria**: 
+All three datasets pass schema validation after cleaning. Violations documented.
 
 
 ### `src/data_loader.py` — Shared Data Loading
@@ -100,7 +112,7 @@ def load_radnett() -> pd.DataFrame:
     """
     Load Radnett data with:
     - Parsed datetime index
-    - Zero values replaced with NaN (for stations with >5% zeros)
+    - Zero values replaced with NaN (maybe for stations with >5% zeros; need to figure out how to handle)
     - Column names standardized to snake_case English
     - Station type column added (ground | building | air_filter | mobile)
     Returns: DataFrame with columns:
@@ -139,8 +151,6 @@ def load_weather(station_name: str, start: str, end: str) -> pd.DataFrame:
       time, precipitation_mm, wind_speed_ms, wind_direction_deg, temperature_c
     """
 ```
-
-**Acceptance criteria**: `load_radnett()` returns ~385k rows with NaN instead of 0 for missing. `load_civil_defence()` returns 2356 rows with µSv/h units. All spatial data plottable on a map of Norway without errors.
 
 
 ### `src/utils.py` — Shared Utilities
@@ -399,37 +409,6 @@ def load_weather(station_name: str, start: str, end: str) -> pd.DataFrame:
 
 **Acceptance criteria**: At least 3 signal strengths × 5 stations tested. Clearly labelled as simulation, not real events.
 
----
 
-## Presentation Structure (10 minutes)
 
-| Segment | Time | Content | Key figure |
-|---|---|---|---|
-| Opening claim + framework | 1:00 | "The system has lower actual capacity than designed" | — |
-| Data quality | 2:00 | Zero-coding, effective station count | Uptime heatmap |
-| Temporal patterns + weather | 2:30 | Seasonal decomposition, radon washout = precipitation, residuals | Precipitation vs residual scatter |
-| Spatial coverage | 2:30 | Map with uptime coloring, Civil Defence overlay, gaps | Coverage map |
-| Further analysis + repo | 1:30 | ML pilot, station value ranking, synthetic scenarios — "all in this repo" | Repo link |
-| Recommendations | 0:30 | Top 3 prioritised actions | — |
 
----
-
-## Take-Home Messages (for FINDINGS.md)
-
-1. The system operates below design capacity — zero-coding masks this
-2. Most Radnett variance is explained by season and precipitation — what remains is where real events would hide
-3. The two monitoring systems [are / are not] calibrated — this limits unified situational awareness
-4. Station information value varies dramatically — maintenance resources should be prioritised accordingly
-5. A simple weather-corrected model can lower the detection threshold while reducing false alarms
-6. **Concrete recommendation**: [Top 3 actions ranked by cost/benefit]
-
----
-
-## Technical Standards
-
-- **Language**: All code, variable names, docstrings, comments in English
-- **Notebooks**: Norwegian acceptable in markdown narrative (interview context), English in code
-- **Data validation**: Pandera schemas enforced at load time
-- **Plotting**: Consistent style via `utils.py`, publication-ready saved to `figures/`
-- **Dependencies**: `requirements.txt` pinned, no exotic packages
-- **Repo hygiene**: `.gitignore` for data/raw, clear README, FINDINGS.md for non-technical readers

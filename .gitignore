@@ -6,3 +6,17 @@ __pycache__/
 .DS_Store
 figures/*.png
 figures/*.pdf
+
+# Python virtual environments
+.venv/
+venv/
+
+# Test and coverage artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Jupyter runtime files
+.jupyter/
+**/.ipynb_checkpoints/

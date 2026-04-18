@@ -4,7 +4,7 @@ applyTo: "src/**/*.py"
 
 ## Source module conventions
 
-These modules are the shared foundation — every notebook depends on them. Changes here affect all downstream analysis.
+These modules are the shared foundation for every notebook. Changes here affect all downstream analysis.
 
 `data_loader.py` is the single source of truth for data loading. It must:
 - Handle all file path resolution relative to project root
