@@ -6,6 +6,24 @@ from typing import Optional
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
+from math import radians, sin, cos, sqrt, atan2
+
+
+# --- Paths ---
+
+def project_root() -> Path:
+    """Find project root by looking for .git or PROJECT_SPEC.md."""
+    current = Path(__file__).resolve().parent
+    while current != current.parent:
+        if (current / "PROJECT_SPEC.md").exists() or (current / ".git").exists():
+            return current
+        current = current.parent
+    return Path(__file__).resolve().parent.parent
+
+
+def _figures_dir() -> Path:
+    """Return path to figures directory."""
+    return project_root() / "figures"
 
 
 # --- Style configuration ---
@@ -87,17 +105,14 @@ def save_figure(fig: matplotlib.figure.Figure, name: str, fmt: str = "png") -> P
     figures_dir.mkdir(parents=True, exist_ok=True)
     filepath = figures_dir / f"{name}.{fmt}"
     fig.savefig(filepath)
-    plt.close(fig)
     return filepath
 
 
-def _figures_dir() -> Path:
-    """Return path to figures directory."""
-    # Try to find project root
-    current = Path(__file__).resolve().parent
-    while current != current.parent:
-        if (current / "PROJECT_SPEC.md").exists() or (current / ".git").exists():
-            return current / "figures"
-        current = current.parent
-    # Fallback to figures/ relative to src/
-    return Path(__file__).resolve().parent.parent / "figures"
+
+def haversine_km(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
+    """Distance in km between two points. Args in (x, y) = (lon, lat) order."""
+    R = 6371
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    return R * 2 * atan2(sqrt(a), sqrt(1-a))

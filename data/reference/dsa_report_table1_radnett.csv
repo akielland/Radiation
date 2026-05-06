@@ -1,0 +1,37 @@
+# Source: DSA Report 2024:04, Table 1, page 10
+# "Liste over alle Radnett-stasjonane med stad, posisjon, plassering og dato"
+# Coordinates in degrees and minutes, manually extracted
+station_name,county,lat_deg,lat_min,lon_deg,lon_min,placement
+Longyearbyen,Svalbard,78,13,15,37,ground
+Mehamn,Troms og Finnmark,71,1,27,49,ground
+Hammerfest,Troms og Finnmark,70,40,23,39,building
+Vardø,Troms og Finnmark,70,22,31,5,ground
+Sørkjosen,Troms og Finnmark,69,35,20,58,building
+Tromsø,Troms og Finnmark,69,39,18,56,ground
+Karasjok,Troms og Finnmark,69,28,25,31,ground
+Svanhovd,Troms og Finnmark,69,27,30,2,ground
+Kautokeino,Troms og Finnmark,69,35,25,19,ground
+Harstad,Troms og Finnmark,68,48,16,32,ground
+Svolvær,Nordland,68,13,14,35,building
+Bodø,Nordland,67,17,14,23,building
+Mo i Rana,Nordland,66,18,14,8,building
+Brønnøysund,Nordland,65,27,12,12,ground
+Snåsa,Trøndelag,64,14,12,23,ground
+Hitra,Trøndelag,63,38,8,41,ground
+Trondheim,Trøndelag,63,24,10,28,ground
+Molde,Møre og Romsdal,62,45,7,12,ground
+Runde,Møre og Romsdal,62,23,5,39,ground
+Dombås,Innlandet,62,4,9,7,ground
+Drevsjø,Innlandet,61,53,12,2,ground
+Førde,Vestland,61,27,5,50,ground
+Hamar,Innlandet,60,49,11,4,ground
+Hol,Viken,60,34,8,24,ground
+Bergen,Vestland,60,23,5,20,building
+Kjeller,Viken,59,58,11,3,ground
+Oslo,Oslo,59,56,10,43,ground
+Vinje,Vestfold og Telemark,59,36,7,51,ground
+Halden,Viken,58,59,11,31,building
+Stavern,Vestfold og Telemark,58,59,10,2,ground
+Stavanger,Rogaland,58,57,5,43,ground
+Arendal,Agder,58,31,8,54,ground
+Lista,Agder,58,7,6,33,ground

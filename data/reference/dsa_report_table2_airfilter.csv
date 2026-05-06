@@ -1,0 +1,13 @@
+# Source: DSA Report 2024:04, Table 2, page 12
+# "Liste over luftfilterstasjonar med stad, posisjon og eigenskapar"
+# Coordinates already in decimal format (lat, lon)
+station_name,lat_decimal,lon_decimal,volume_m3h,filter_frequency,charcoal_filter_iodine,online_monitor
+Stavanger,58.88,5.63,800,weekly,no,yes
+Østerås,59.94,10.60,750,weekly,yes,yes
+Bergen,60.34,5.22,750,weekly,no,no
+Ørland,63.70,9.62,800,weekly,no,no
+Skibotn,69.36,20.30,800,weekly,no,yes
+Svanhovd,69.45,30.04,800,weekly,yes,yes
+Viksjøfjell,69.62,30.80,500,weekly,no,no
+Tromsø,69.66,18.97,650,weekly,yes,no
+Longyearbyen,78.22,15.38,650,daily,no,no

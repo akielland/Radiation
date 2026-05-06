@@ -121,6 +121,7 @@ def load_station_locations(data_path: Optional[Path] = None) -> gpd.GeoDataFrame
     df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
     df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
 
+    # Create geometry — Point(x, y) = Point(lon, lat)
     geometry = [Point(lon, lat) for lon, lat in zip(df["longitude"], df["latitude"])]
     gdf = gpd.GeoDataFrame(df, geometry=geometry, crs="EPSG:4326")
 
@@ -128,16 +129,18 @@ def load_station_locations(data_path: Optional[Path] = None) -> gpd.GeoDataFrame
 
 
 def _parse_wkt_point(location_str: str) -> tuple[float, float]:
-    """Parse 'SRID=4326;POINT(lon lat)' into (latitude, longitude).
+    """Parse 'SRID=4326;POINT(x y)' into (x, y) = (lon, lat).
 
+    WKT standard: POINT(x y) = POINT(longitude latitude).
+    Returns in the same (x, y) order — no swapping.
     Returns (NaN, NaN) if parsing fails.
     """
     try:
         match = re.search(r"POINT\(([-\d.]+)\s+([-\d.]+)\)", location_str)
         if match:
-            lon = float(match.group(1))
-            lat = float(match.group(2))
-            return lat, lon
+            x = float(match.group(1))  # longitude
+            y = float(match.group(2))  # latitude
+            return x, y
     except (TypeError, ValueError):
         pass
     return np.nan, np.nan
@@ -183,10 +186,10 @@ def load_civil_defence(data_path: Optional[Path] = None) -> gpd.GeoDataFrame:
 
     df = pd.read_csv(data_path)
 
-    # Parse coordinates
+    # Parse coordinates — returns (x, y) = (lon, lat)
     coords = df["location"].apply(_parse_wkt_point)
-    df["latitude"] = coords.apply(lambda x: x[0])
-    df["longitude"] = coords.apply(lambda x: x[1])
+    df["longitude"] = coords.apply(lambda c: c[0])  # x
+    df["latitude"] = coords.apply(lambda c: c[1])   # y
 
     # Convert Sv/h to µSv/h
     df["dose_rate_microsv_h"] = df["doserate [Sv/h]"] * 1e6
@@ -205,7 +208,7 @@ def load_civil_defence(data_path: Optional[Path] = None) -> gpd.GeoDataFrame:
     # Drop parsed source columns
     df = df.drop(columns=["location", "doserate [Sv/h]", "metadata"])
 
-    # Create geometry
+    # Create geometry — Point(x, y) = Point(lon, lat)
     geometry = [
         Point(row["longitude"], row["latitude"])
         if pd.notna(row["latitude"]) and pd.notna(row["longitude"])
@@ -215,3 +218,110 @@ def load_civil_defence(data_path: Optional[Path] = None) -> gpd.GeoDataFrame:
     gdf = gpd.GeoDataFrame(df, geometry=geometry, crs="EPSG:4326")
 
     return gdf
+
+# --- MET Weather Data ---
+
+# Nearest MET weather station for key Radnett locations
+# Source: https://frost.met.no/sources/v0.jsonld
+MET_STATION_MAP = {
+    "Oslo": "SN18700",        # Blindern
+    "Vinje": "SN35860",       # Møsstrond
+    "Tromsø": "SN90450",      # Tromsø
+    "Bergen": "SN50540",      # Florida
+    "Svanhovd": "SN99710",    # Svanhovd
+    "Bodø": "SN82290",        # Bodø VI
+    "Trondheim": "SN68860",   # Voll
+    "Hammerfest": "SN95350",  # Hammerfest
+    "Stavanger": "SN44560",   # Sola
+    "Karasjok": "SN97251",    # Karasjok
+}
+
+
+def _processed_data_dir() -> Path:
+    """Return path to processed data directory (for caching)."""
+    d = _project_root() / "data" / "processed"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def load_weather(
+    station_name: str,
+    start: str = "2023-01-01",
+    end: str = "2023-12-31",
+    client_id: str | None = None,
+) -> pd.DataFrame | None:
+    """Fetch hourly weather data from MET Frost API.
+
+    Looks up the nearest MET weather station for the given Radnett station,
+    fetches hourly precipitation, and caches the result locally.
+
+    Args:
+        station_name: Radnett station name (must be in MET_STATION_MAP).
+        start: Start date (ISO format).
+        end: End date (ISO format).
+        client_id: MET Frost API client ID. If None, checks environment
+            variable MET_CLIENT_ID. If neither set, returns None.
+
+    Returns:
+        DataFrame with columns: time, precipitation_mm.
+        Returns None if no API key or station not mapped.
+    """
+    import os
+
+    if station_name not in MET_STATION_MAP:
+        print(f"No MET station mapping for '{station_name}'. "
+              f"Available: {list(MET_STATION_MAP.keys())}")
+        return None
+
+    met_station = MET_STATION_MAP[station_name]
+
+    # Check for cached data first
+    cache_file = _processed_data_dir() / f"weather_{station_name}_{start}_{end}.csv"
+    if cache_file.exists():
+        return pd.read_csv(cache_file, parse_dates=["time"])
+
+    # Resolve API key
+    if client_id is None:
+        client_id = os.environ.get("MET_CLIENT_ID")
+    if client_id is None:
+        print("No MET API key. Set MET_CLIENT_ID environment variable "
+              "or pass client_id parameter. Register at https://frost.met.no/")
+        return None
+
+    # Fetch from API
+    import requests
+
+    url = "https://frost.met.no/observations/v0.jsonld"
+    params = {
+        "sources": met_station,
+        "elements": "sum(precipitation_amount PT1H)",
+        "referencetime": f"{start}/{end}",
+        "timeresolutions": "PT1H",
+    }
+
+    try:
+        resp = requests.get(url, params=params, auth=(client_id, ""), timeout=30)
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"MET API request failed: {e}")
+        return None
+
+    data = resp.json().get("data", [])
+    if not data:
+        print(f"No data returned for {met_station}")
+        return None
+
+    records = []
+    for obs in data:
+        time = pd.to_datetime(obs["referenceTime"])
+        value = obs["observations"][0]["value"]
+        records.append({"time": time, "precipitation_mm": value})
+
+    result = pd.DataFrame(records)
+
+    # Cache for next time
+    result.to_csv(cache_file, index=False)
+    print(f"Fetched {len(result)} hours of weather data for {station_name} "
+          f"(MET station {met_station}), cached to {cache_file.name}")
+
+    return result

@@ -11,11 +11,12 @@ Deliverables: GitHub repo + 10-minute presentation.
 **Q1: How well does the current monitoring system perform?**
 - Operational reliability (uptime, data quality)    
 - Geographic coverage (gaps, redundancy)  
-- Signal quality (noise separation, detection capability)
+- Demographic coverage (all, sub-groups)  
 - For whom does it work / fail? (population, geography, critical infrastructure)
+- Signal quality (noise separation, detection capability). 
 
 **Q2: What is the improvement potential?**
-- Analytical: what can be extracted from existing data with better analysis methods?
+- Analytical: what can be extracted from existing data with extended analysis methods?
 - Physical: where should resources be invested?
 - Concrete ranked recommendations
 
